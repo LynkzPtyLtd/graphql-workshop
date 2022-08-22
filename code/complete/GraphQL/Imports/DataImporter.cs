@@ -6,67 +6,66 @@ using ConferencePlanner.GraphQL.Data;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace ConferencePlanner.GraphQL.Imports
+namespace ConferencePlanner.GraphQL.Imports;
+
+public class DataImporter
 {
-    public class DataImporter
+    public async Task LoadDataAsync(ApplicationDbContext db)
     {
-        public async Task LoadDataAsync(ApplicationDbContext db)
+        await using var stream = File.OpenRead("Imports/NDC_London_2019.json");
+        using var reader = new JsonTextReader(new StreamReader(stream));
+
+        var conference = await JArray.LoadAsync(reader);
+        var speakers = new Dictionary<string, Speaker>();
+
+        foreach (var conferenceDay in conference)
         {
-            await using var stream = File.OpenRead("Imports/NDC_London_2019.json");
-            using var reader = new JsonTextReader(new StreamReader(stream));
-
-            JArray conference = await JArray.LoadAsync(reader);
-            var speakers = new Dictionary<string, Speaker>();
-
-            foreach (var conferenceDay in conference)
+            foreach (var roomData in conferenceDay["rooms"]!)
             {
-                foreach (var roomData in conferenceDay["rooms"]!)
+                var track = new Track
                 {
-                    var track = new Track
+                    Name = roomData["name"]!.ToString()
+                };
+
+                foreach (var sessionData in roomData["sessions"]!)
+                {
+                    var session = new Session
                     {
-                        Name = roomData["name"]!.ToString()
+                        Title = sessionData["title"]!.ToString(),
+                        Abstract = sessionData["description"]!.ToString(),
+                        StartTime = sessionData["startsAt"]!.Value<DateTime>(),
+                        EndTime = sessionData["endsAt"]!.Value<DateTime>(),
                     };
 
-                    foreach (var sessionData in roomData["sessions"]!)
+                    track.Sessions.Add(session);
+
+                    foreach (var speakerData in sessionData["speakers"]!)
                     {
-                        var session = new Session
+                        var id = speakerData["id"]!.ToString();
+
+                        if (!speakers.TryGetValue(id, out var speaker))
                         {
-                            Title = sessionData["title"]!.ToString(),
-                            Abstract = sessionData["description"]!.ToString(),
-                            StartTime = sessionData["startsAt"]!.Value<DateTime>(),
-                            EndTime = sessionData["endsAt"]!.Value<DateTime>(),
-                        };
+                            speaker = new Speaker
+                            { 
+                                Name = speakerData["name"]!.ToString()
+                            };
 
-                        track.Sessions.Add(session);
-
-                        foreach (var speakerData in sessionData["speakers"]!)
-                        {
-                            string id = speakerData["id"]!.ToString();
-
-                            if (!speakers.TryGetValue(id, out Speaker? speaker))
-                            {
-                                speaker = new Speaker
-                                { 
-                                    Name = speakerData["name"]!.ToString()
-                                };
-
-                                speakers.Add(id, speaker);
-                                db.Speakers.Add(speaker);
-                            }
-
-                            session.SessionSpeakers.Add(new SessionSpeaker
-                            {
-                                Speaker = speaker,
-                                Session = session
-                            });
+                            speakers.Add(id, speaker);
+                            db.Speakers.Add(speaker);
                         }
+
+                        session.SessionSpeakers.Add(new SessionSpeaker
+                        {
+                            Speaker = speaker,
+                            Session = session
+                        });
                     }
-
-                    db.Tracks.Add(track);
                 }
-            }
 
-            await db.SaveChangesAsync();
+                db.Tracks.Add(track);
+            }
         }
+
+        await db.SaveChangesAsync();
     }
 }

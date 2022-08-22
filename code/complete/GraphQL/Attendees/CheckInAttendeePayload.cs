@@ -4,33 +4,32 @@ using ConferencePlanner.GraphQL.Common;
 using ConferencePlanner.GraphQL.Data;
 using ConferencePlanner.GraphQL.DataLoader;
 
-namespace ConferencePlanner.GraphQL.Attendees
+namespace ConferencePlanner.GraphQL.Attendees;
+
+public class CheckInAttendeePayload : AttendeePayloadBase
 {
-    public class CheckInAttendeePayload : AttendeePayloadBase
+    private readonly int? _sessionId;
+
+    public CheckInAttendeePayload(Attendee attendee, int sessionId)
+        : base(attendee)
     {
-        private readonly int? _sessionId;
+        _sessionId = sessionId;
+    }
 
-        public CheckInAttendeePayload(Attendee attendee, int sessionId)
-            : base(attendee)
+    public CheckInAttendeePayload(UserError error)
+        : base(new[] { error })
+    {
+    }
+
+    public async Task<Session?> GetSessionAsync(
+        SessionByIdDataLoader sessionById,
+        CancellationToken cancellationToken)
+    {
+        if (_sessionId.HasValue)
         {
-            _sessionId = sessionId;
+            return await sessionById.LoadAsync(_sessionId.Value, cancellationToken);
         }
 
-        public CheckInAttendeePayload(UserError error)
-            : base(new[] { error })
-        {
-        }
-
-        public async Task<Session?> GetSessionAsync(
-            SessionByIdDataLoader sessionById,
-            CancellationToken cancellationToken)
-        {
-            if (_sessionId.HasValue)
-            {
-                return await sessionById.LoadAsync(_sessionId.Value, cancellationToken);
-            }
-
-            return null;
-        }
+        return null;
     }
 }

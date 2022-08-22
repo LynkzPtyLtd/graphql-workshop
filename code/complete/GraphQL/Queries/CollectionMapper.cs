@@ -1,0 +1,19 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using ServiceStack.Text;
+
+namespace ConferencePlanner.GraphQL.Queries;
+
+internal class CollectionMapper<TResult> : ICollectionMapper
+{
+    public IEnumerable MapValues(IEnumerable fromList, Type toInstanceOfType)
+    {
+        var to = (ICollection<TResult>)TranslateListWithElements<TResult>
+            .CreateInstance(toInstanceOfType);
+
+        foreach (var item in fromList) to.Add(ValueMapper.MapValue<TResult>(item));
+
+        return to;
+    }
+}

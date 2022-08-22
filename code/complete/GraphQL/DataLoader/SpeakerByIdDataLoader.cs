@@ -7,32 +7,31 @@ using Microsoft.EntityFrameworkCore;
 using ConferencePlanner.GraphQL.Data;
 using GreenDonut;
 
-namespace ConferencePlanner.GraphQL.DataLoader
+namespace ConferencePlanner.GraphQL.DataLoader;
+
+public class SpeakerByIdDataLoader : BatchDataLoader<int, Speaker>
 {
-    public class SpeakerByIdDataLoader : BatchDataLoader<int, Speaker>
+    private readonly IDbContextFactory<ApplicationDbContext> _dbContextFactory;
+
+    public SpeakerByIdDataLoader(
+        IDbContextFactory<ApplicationDbContext> dbContextFactory,
+        IBatchScheduler batchScheduler,
+        DataLoaderOptions options)
+        : base(batchScheduler, options)
     {
-        private readonly IDbContextFactory<ApplicationDbContext> _dbContextFactory;
+        _dbContextFactory = dbContextFactory ?? 
+                            throw new ArgumentNullException(nameof(dbContextFactory));
+    }
 
-        public SpeakerByIdDataLoader(
-            IDbContextFactory<ApplicationDbContext> dbContextFactory,
-            IBatchScheduler batchScheduler,
-            DataLoaderOptions options)
-            : base(batchScheduler, options)
-        {
-            _dbContextFactory = dbContextFactory ?? 
-                throw new ArgumentNullException(nameof(dbContextFactory));
-        }
+    protected override async Task<IReadOnlyDictionary<int, Speaker>> LoadBatchAsync(
+        IReadOnlyList<int> keys, 
+        CancellationToken cancellationToken)
+    {
+        await using var dbContext = 
+            await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        protected override async Task<IReadOnlyDictionary<int, Speaker>> LoadBatchAsync(
-            IReadOnlyList<int> keys, 
-            CancellationToken cancellationToken)
-        {
-            await using ApplicationDbContext dbContext = 
-                _dbContextFactory.CreateDbContext();
-
-            return await dbContext.Speakers
-                .Where(s => keys.Contains(s.Id))
-                .ToDictionaryAsync(t => t.Id, cancellationToken);
-        }
+        return await dbContext.Speakers
+            .Where(s => keys.Contains(s.Id))
+            .ToDictionaryAsync(t => t.Id, cancellationToken);
     }
 }

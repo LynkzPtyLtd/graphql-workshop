@@ -5,17 +5,16 @@ using ConferencePlanner.GraphQL.DataLoader;
 using HotChocolate;
 using HotChocolate.Types;
 
-namespace ConferencePlanner.GraphQL.Sessions
+namespace ConferencePlanner.GraphQL.Sessions;
+
+[ExtendObjectType(OperationTypeNames.Subscription)]
+public class SessionSubscriptions
 {
-    [ExtendObjectType(OperationTypeNames.Subscription)]
-    public class SessionSubscriptions
-    {
-        [Subscribe]
-        [Topic]
-        public Task<Session> OnSessionScheduledAsync(
-            [EventMessage] int sessionId,
-            SessionByIdDataLoader sessionById,
-            CancellationToken cancellationToken) =>
-            sessionById.LoadAsync(sessionId, cancellationToken);
-    }
+    [Subscribe]
+    [Topic]
+    public Task<Session> OnSessionScheduledAsync(
+        [EventMessage] int sessionId,
+        SessionByIdDataLoader sessionById,
+        CancellationToken cancellationToken) =>
+        sessionById.LoadAsync(sessionId, cancellationToken);
 }

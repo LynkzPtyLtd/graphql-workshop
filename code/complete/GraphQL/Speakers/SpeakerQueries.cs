@@ -5,30 +5,38 @@ using System.Threading.Tasks;
 using ConferencePlanner.GraphQL.Data;
 using ConferencePlanner.GraphQL.DataLoader;
 using HotChocolate;
+using HotChocolate.Data;
 using HotChocolate.Types;
 using HotChocolate.Types.Relay;
 
-namespace ConferencePlanner.GraphQL.Speakers
+namespace ConferencePlanner.GraphQL.Speakers;
+
+[ExtendObjectType(OperationTypeNames.Query)]
+public class SpeakerQueries
 {
-    [ExtendObjectType(OperationTypeNames.Query)]
-    public class SpeakerQueries
-    {
-        [UseApplicationDbContext]
-        [UsePaging]
-        public IQueryable<Speaker> GetSpeakers(
-            [ScopedService] ApplicationDbContext context) 
-            => context.Speakers.OrderBy(t => t.Name);
+    [UseApplicationDbContext]
+    [UseOffsetPaging]
+    [UseProjection]
+    [UseFiltering]
+    [UseSorting]
+    public IQueryable<Speaker> GetSpeakers(
+        [ScopedService] ApplicationDbContext context) 
+        => context.Speakers.OrderBy(t => t.Name);
 
-        public Task<Speaker> GetSpeakerByIdAsync(
-            [ID(nameof(Speaker))] int id,
-            SpeakerByIdDataLoader dataLoader,
-            CancellationToken cancellationToken) 
-            => dataLoader.LoadAsync(id, cancellationToken);
+    [UseProjection]
+    public Task<Speaker> GetSpeakerByIdAsync(
+        [ID(nameof(Speaker))] int id,
+        SpeakerByIdDataLoader dataLoader,
+        CancellationToken cancellationToken) 
+        => dataLoader.LoadAsync(id, cancellationToken);
 
-        public async Task<IEnumerable<Speaker>> GetSpeakersByIdAsync(
-            [ID(nameof(Speaker))] int[] ids,
-            SpeakerByIdDataLoader dataLoader,
-            CancellationToken cancellationToken) 
-            => await dataLoader.LoadAsync(ids, cancellationToken);
-    }
+    [UseOffsetPaging]
+    [UseProjection]
+    [UseFiltering]
+    [UseSorting]
+    public async Task<IEnumerable<Speaker>> GetSpeakersByIdAsync(
+        [ID(nameof(Speaker))] int[] ids,
+        SpeakerByIdDataLoader dataLoader,
+        CancellationToken cancellationToken) 
+        => await dataLoader.LoadAsync(ids, cancellationToken);
 }

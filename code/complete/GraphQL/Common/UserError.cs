@@ -1,4 +1,3 @@
-namespace ConferencePlanner.GraphQL.Common
-{
-    public record UserError(string Message, string Code);
-}
+namespace ConferencePlanner.GraphQL.Common;
+
+public record UserError(string Message, string Code);

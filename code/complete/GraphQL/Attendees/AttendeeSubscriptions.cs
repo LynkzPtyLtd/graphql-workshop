@@ -8,22 +8,21 @@ using HotChocolate.Subscriptions;
 using HotChocolate.Types;
 using HotChocolate.Types.Relay;
 
-namespace ConferencePlanner.GraphQL.Attendees
-{
-    [ExtendObjectType(OperationTypeNames.Subscription)]
-    public class AttendeeSubscriptions
-    {
-        [Subscribe(With = nameof(SubscribeToOnAttendeeCheckedInAsync))]
-        public SessionAttendeeCheckIn OnAttendeeCheckedIn(
-            [ID(nameof(Session))] int sessionId,
-            [EventMessage] int attendeeId) 
-            => new(attendeeId, sessionId);
+namespace ConferencePlanner.GraphQL.Attendees;
 
-        public async ValueTask<ISourceStream<int>> SubscribeToOnAttendeeCheckedInAsync(
-            int sessionId,
-            [Service] ITopicEventReceiver eventReceiver,
-            CancellationToken cancellationToken) 
-            => await eventReceiver.SubscribeAsync<string, int>(
-                "OnAttendeeCheckedIn_" + sessionId, cancellationToken);
-    }
+[ExtendObjectType(OperationTypeNames.Subscription)]
+public class AttendeeSubscriptions
+{
+    [Subscribe(With = nameof(SubscribeToOnAttendeeCheckedInAsync))]
+    public SessionAttendeeCheckIn OnAttendeeCheckedIn(
+        [ID(nameof(Session))] int sessionId,
+        [EventMessage] int attendeeId) 
+        => new(attendeeId, sessionId);
+
+    public async ValueTask<ISourceStream<int>> SubscribeToOnAttendeeCheckedInAsync(
+        int sessionId,
+        [Service] ITopicEventReceiver eventReceiver,
+        CancellationToken cancellationToken) 
+        => await eventReceiver.SubscribeAsync<string, int>(
+            "OnAttendeeCheckedIn_" + sessionId, cancellationToken);
 }

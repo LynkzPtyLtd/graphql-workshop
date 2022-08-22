@@ -7,32 +7,31 @@ using Microsoft.EntityFrameworkCore;
 using ConferencePlanner.GraphQL.Data;
 using GreenDonut;
 
-namespace ConferencePlanner.GraphQL.DataLoader
+namespace ConferencePlanner.GraphQL.DataLoader;
+
+public class TrackByIdDataLoader : BatchDataLoader<int, Track>
 {
-    public class TrackByIdDataLoader : BatchDataLoader<int, Track>
+    private readonly IDbContextFactory<ApplicationDbContext> _dbContextFactory;
+
+    public TrackByIdDataLoader(
+        IDbContextFactory<ApplicationDbContext> dbContextFactory,
+        IBatchScheduler batchScheduler,
+        DataLoaderOptions options)
+        : base(batchScheduler, options)
     {
-        private readonly IDbContextFactory<ApplicationDbContext> _dbContextFactory;
+        _dbContextFactory = dbContextFactory ?? 
+                            throw new ArgumentNullException(nameof(dbContextFactory));
+    }
 
-        public TrackByIdDataLoader(
-            IDbContextFactory<ApplicationDbContext> dbContextFactory,
-            IBatchScheduler batchScheduler,
-            DataLoaderOptions options)
-            : base(batchScheduler, options)
-        {
-            _dbContextFactory = dbContextFactory ?? 
-                throw new ArgumentNullException(nameof(dbContextFactory));
-        }
+    protected override async Task<IReadOnlyDictionary<int, Track>> LoadBatchAsync(
+        IReadOnlyList<int> keys, 
+        CancellationToken cancellationToken)
+    {
+        await using var dbContext = 
+            await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        protected override async Task<IReadOnlyDictionary<int, Track>> LoadBatchAsync(
-            IReadOnlyList<int> keys, 
-            CancellationToken cancellationToken)
-        {
-            await using ApplicationDbContext dbContext = 
-                _dbContextFactory.CreateDbContext();
-
-            return await dbContext.Tracks
-                .Where(s => keys.Contains(s.Id))
-                .ToDictionaryAsync(t => t.Id, cancellationToken);
-        }
+        return await dbContext.Tracks
+            .Where(s => keys.Contains(s.Id))
+            .ToDictionaryAsync(t => t.Id, cancellationToken);
     }
 }

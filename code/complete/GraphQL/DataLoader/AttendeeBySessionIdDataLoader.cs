@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -9,12 +9,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ConferencePlanner.GraphQL.DataLoader;
 
-public class SessionBySpeakerIdDataLoader : GroupedDataLoader<int, Session>
+public class AttendeeBySessionIdDataLoader : GroupedDataLoader<int, Attendee>
 {
-    private static readonly string SessionCacheKey = GetCacheKeyType<SessionByIdDataLoader>();
+    private static readonly string AttendeeCacheKey = GetCacheKeyType<AttendeeByIdDataLoader>();
     private readonly IDbContextFactory<ApplicationDbContext> _dbContextFactory;
 
-    public SessionBySpeakerIdDataLoader(
+    public AttendeeBySessionIdDataLoader(
         IDbContextFactory<ApplicationDbContext> dbContextFactory,
         IBatchScheduler batchScheduler,
         DataLoaderOptions options)
@@ -24,22 +24,22 @@ public class SessionBySpeakerIdDataLoader : GroupedDataLoader<int, Session>
                             throw new ArgumentNullException(nameof(dbContextFactory));
     }
 
-    protected override async Task<ILookup<int, Session>> LoadGroupedBatchAsync(
+    protected override async Task<ILookup<int, Attendee>> LoadGroupedBatchAsync(
         IReadOnlyList<int> keys,
         CancellationToken cancellationToken)
     {
-        await using var dbContext = 
+        await using var dbContext =
             await _dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-        var list = await dbContext.Speakers
+        var list = await dbContext.Sessions
             .Where(s => keys.Contains(s.Id))
-            .Include(s => s.SessionSpeakers)
-            .SelectMany(s => s.SessionSpeakers)
-            .Include(s => s.Session)
+            .Include(s => s.SessionAttendees)
+            .SelectMany(s => s.SessionAttendees)
+            .Include(s => s.Attendee)
             .ToListAsync(cancellationToken);
 
-        TryAddToCache(SessionCacheKey, list, item => item.SessionId, item => item.Session!);
+        TryAddToCache(AttendeeCacheKey, list, item => item.AttendeeId, item => item.Attendee!);
 
-        return list.ToLookup(t => t.SpeakerId, t => t.Session!);
+        return list.ToLookup(t => t.SessionId, t => t.Attendee!);
     }
 }
