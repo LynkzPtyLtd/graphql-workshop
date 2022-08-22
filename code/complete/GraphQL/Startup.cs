@@ -51,13 +51,15 @@ public class Startup
         {
             endpoints.MapGet("/", context =>
             {
-                context.Response.Redirect("/graphql-graph", true);
+                context.Response.Redirect("/graphql", false);
                 return Task.CompletedTask;
             });
 
             // We will be using the new routing API to host our GraphQL middleware.
             endpoints.MapGraphQL("/graphql", new NameString("Relational"));
-            endpoints.MapGraphQL("/graphql-graph", new NameString("Graph"));
+            
+            // Neo4j demo for later.
+            //endpoints.MapGraphQL("/graphql-graph", new NameString("Graph"));
         });
     }
 }
